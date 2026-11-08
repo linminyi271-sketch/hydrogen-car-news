@@ -63,6 +63,8 @@ function doPost(e) {
   try {
     if (body.action === 'addNews') return json_(addNews_(body.items, uploader));
     if (body.action === 'saveObservation') return json_(saveObservation_(body, uploader));
+    if (body.action === 'deleteNews') return json_(deleteNews_(body.ids, uploader));
+    if (body.action === 'deleteWeek') return json_(deleteWeek_(body.week_start, uploader));
     return json_({ ok: false, error: 'unknown_action', message: '未知的操作' });
   } catch (err) {
     return json_({ ok: false, error: 'server_error', message: '伺服器錯誤：' + err });
@@ -155,6 +157,55 @@ function saveObservation_(body, uploader) {
     uploaded_at: now_()
   }]);
   return { ok: true };
+}
+
+// ---------- 刪除（採軟刪除，保留管理紀錄，可由管理者在試算表調整 status 還原） ----------
+function deleteNews_(ids, uploader) {
+  if (!Array.isArray(ids) || !ids.length) return { ok: false, error: 'no_ids', message: '沒有選取新聞' };
+  if (ids.length > LIMITS.items) return { ok: false, error: 'too_many', message: '一次最多刪除 ' + LIMITS.items + ' 則' };
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(NEWS_SHEET);
+  if (!sheet || sheet.getLastRow() < 2) return { ok: true, deleted: 0 };
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0].map(function (h) { return String(h).trim(); });
+  var idCol = headers.indexOf('id') + 1, statusCol = headers.indexOf('status') + 1;
+  if (!idCol || !statusCol) throw new Error('news 分頁缺少 id 或 status 欄位');
+  var wanted = {}; ids.forEach(function (id) { wanted[String(id)] = true; });
+  var count = 0;
+  for (var r = 1; r < values.length; r++) {
+    if (wanted[String(values[r][idCol - 1])] && !HIDDEN[String(values[r][statusCol - 1] || '').trim().toLowerCase()]) {
+      sheet.getRange(r + 1, statusCol).setValue('hidden'); count++;
+    }
+  }
+  return { ok: true, deleted: count };
+}
+function deleteWeek_(weekStart, uploader) {
+  var week = clean_(weekStart, 10);
+  if (!isDate_(week)) return { ok: false, error: 'bad_week', message: '期別格式錯誤' };
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(NEWS_SHEET);
+  var count = 0;
+  if (sheet && sheet.getLastRow() >= 2) {
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0].map(function (h) { return String(h).trim(); });
+    var weekCol = headers.indexOf('week_start') + 1, statusCol = headers.indexOf('status') + 1;
+    if (!weekCol || !statusCol) throw new Error('news 分頁缺少 week_start 或 status 欄位');
+    for (var r = 1; r < values.length; r++) {
+      if (String(values[r][weekCol - 1]).slice(0, 10) === week && !HIDDEN[String(values[r][statusCol - 1] || '').trim().toLowerCase()]) {
+        sheet.getRange(r + 1, statusCol).setValue('hidden'); count++;
+      }
+    }
+  }
+  var obs = ss.getSheetByName(OBS_SHEET);
+  if (obs && obs.getLastRow() >= 2) {
+    var ov = obs.getDataRange().getValues();
+    var oh = ov[0].map(function (h) { return String(h).trim(); });
+    var ow = oh.indexOf('week_start') + 1, os = oh.indexOf('status') + 1;
+    if (ow && os) for (var j = 1; j < ov.length; j++) {
+      if (String(ov[j][ow - 1]).slice(0, 10) === week) obs.getRange(j + 1, os).setValue('hidden');
+    }
+  }
+  return { ok: true, deleted: count };
 }
 
 // ---------- 試算表工具 ----------
