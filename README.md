@@ -1,14 +1,9 @@
 # 氫能車產業新聞
 
-以繁體中文呈現的氫能車產業新聞週報網站，整理 2026/10/26–11/01 亞洲與國際共 10 則產業動態。
+本網站沿用「機器人產業新聞週報」的完整版型與互動功能，新聞資料替換為氫能車產業新聞。
 
-## 網站功能
-- 亞洲／國際新聞分類
-- 關鍵字搜尋標題、摘要、來源與標籤
-- 新聞原文連結
-- 手機與桌面版響應式版面
+- 週報期間：2026/10/26–11/01
+- 共 10 則新聞：亞洲 3 則、國際 7 則
+- 功能：期別瀏覽、重點觀察、全文搜尋、區域／來源／主題篩選、Word 上傳、單則新增、PDF／CSV 匯出、深色模式。
 
-## GitHub Pages 部署
-此專案為純靜態網站，入口檔案為 `index.html`。請至 Repository 的 **Settings → Pages**，在 **Build and deployment** 選擇 **Deploy from a branch**，Branch 選 `main`、資料夾選 `/ (root)`，按 **Save**。
-
-部署完成後網址為：`https://linminyi271-sketch.github.io/hydrogen-car-news/`。
+GitHub Pages：Settings → Pages → Deploy from a branch → main → /(root)。
