@@ -1,5 +1,5 @@
 /*
- * 機器人產業新聞週報 — 畫面與互動
+ * 氫能車產業新聞 — 畫面與互動
  * 依賴：config.js（設定）、parser.js（解析）、store.js（資料讀寫）
  * 新聞資料一律從 NewsStore 讀取，請不要把新聞寫死在 HTML 裡。
  */
@@ -529,8 +529,8 @@
     $('s-date').value = P.todayStr();
     $('paste-input').value = '';
     $('file-input').value = '';
-    $('uploader').value = lsGet('rnw-uploader');
-    $('upload-code').value = lsGet('rnw-code');
+    $('uploader').value = lsGet('hcnw-uploader');
+    $('upload-code').value = lsGet('hcnw-code');
     $('code-field').hidden = !C.UPLOAD_CODE_REQUIRED;
     $('uploader').classList.remove('bad');
     var dl = $('source-list');
@@ -749,8 +749,8 @@
     if (!name) { $(nameId).classList.add('bad'); $(nameId).focus(); toast('請填寫姓名或員工編號，才能發布。'); return null; }
     if (C.UPLOAD_CODE_REQUIRED && !code) { $(codeId).classList.add('bad'); $(codeId).focus(); toast('請輸入團隊上傳碼。'); return null; }
     $(nameId).classList.remove('bad');
-    lsSet('rnw-uploader', name);
-    if (code) lsSet('rnw-code', code);
+    lsSet('hcnw-uploader', name);
+    if (code) lsSet('hcnw-code', code);
     return { uploader: name, code: code };
   }
 
@@ -803,8 +803,8 @@
     var o = state.obs[w.start];
     $('obs-text').value = (o && o.text) || '';
     $('obs-dlg-week').replaceChildren('期別：', h('span', { class: 'num' }, fmtRange(w.start, w.end)));
-    $('obs-uploader').value = lsGet('rnw-uploader');
-    $('obs-code').value = lsGet('rnw-code');
+    $('obs-uploader').value = lsGet('hcnw-uploader');
+    $('obs-code').value = lsGet('hcnw-code');
     $('obs-code-field').hidden = !C.UPLOAD_CODE_REQUIRED;
     $('obs-dlg').showModal();
   }
@@ -860,7 +860,7 @@
       var dark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
       var next = dark ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
-      lsSet('rnw-theme', next);
+      lsSet('hcnw-theme', next);
     });
 
     // 匯出選單
