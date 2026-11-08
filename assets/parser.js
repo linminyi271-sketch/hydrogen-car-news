@@ -5,7 +5,7 @@
  * 支援的格式（與現行週報相同）：
  *   機器人產業新聞週報 2026/10/29–11/04      ← 選填：期別
  *   【本週重點觀察】                          ← 選填：一行一點
- *   【國內新聞】 / 【國外新聞】                ← 區塊
+ *   【亞洲新聞】 / 【國際新聞】                ← 區塊
  *   1. 新聞標題 - 來源媒體 2026/10/29          ← 標題行（分隔可用 - – — －）
  *   摘要段落（可多段）
  *   原文連結：https://...
@@ -86,8 +86,8 @@
 
   function regionFromHeader(name) {
     if (/觀察|重點|摘要|導讀/.test(name)) return 'OBS';
-    if (/國內|台灣|臺灣/.test(name)) return '國內';
-    if (/國外|國際|海外|全球/.test(name)) return '國外';
+    if (/亞洲|國內|台灣|臺灣/.test(name)) return '亞洲';
+    if (/國外|國際|海外|全球/.test(name)) return '國際';
     var regions = CFG.REGIONS || [];
     for (var i = 0; i < regions.length; i++) if (name.indexOf(regions[i]) !== -1) return regions[i];
     return 'UNKNOWN';
