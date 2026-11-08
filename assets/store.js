@@ -9,8 +9,8 @@
 
   var C = window.SITE_CONFIG || {};
   var P = window.NewsParser;
-  var LS_DEMO = 'rnw-demo-v1';
-  var LS_CACHE = 'rnw-cache-v1';
+  var LS_DEMO = 'hcnw-demo-v1';
+  var LS_CACHE = 'hcnw-cache-v1';
 
   function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 無痕視窗等情況可忽略 */ } }
