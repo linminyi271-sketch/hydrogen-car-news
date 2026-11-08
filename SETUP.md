@@ -35,3 +35,6 @@
 ## 5. 上傳碼（選用）
 
 若需限制上傳者，可在 Apps Script 專案設定的指令碼屬性新增 `UPLOAD_CODE`，並將網站 `config.js` 的 `UPLOAD_CODE_REQUIRED` 設為 `true`。勿將團隊上傳碼寫入公開程式碼。
+
+
+> **刪除功能更新提醒：** 本次版本新增「刪除選取新聞」與「刪除整期新聞」後，請將 Repository 中最新的 `apps-script/Code.gs` 貼回對應的 Apps Script 專案，儲存後到「部署 → 管理部署作業 → 編輯 → 版本：新版本 → 部署」。原有 `/exec` 網址通常不變。網站 `config.js` 必須設定該後端網址，刪除才會同步到所有使用者；若 `API_URL` 留空，刪除只作用於目前瀏覽器的預覽資料。
