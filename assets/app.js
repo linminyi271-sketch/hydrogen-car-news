@@ -520,6 +520,16 @@
         }).join('') + '</section>';
     }).join('');
 
+    // 將本期手動儲存的重點觀察置於 PDF 最上方。
+    var observation = state.obs[w.start] && state.obs[w.start].text
+      ? String(state.obs[w.start].text).trim() : '';
+    var observationHtml = observation
+      ? '<section class="observations"><h2>本週重點觀察</h2>' +
+        observation.split(/\\n+/).filter(Boolean).map(function (line) {
+          return '<p>' + esc(line.trim()) + '</p>';
+        }).join('') + '</section>'
+      : '';
+
     var title = C.SITE_TITLE + '_' + w.start + '_' + w.end;
     var doc = '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8">' +
       '<title>' + esc(title) + '</title><style>' +
@@ -527,6 +537,9 @@
       'html,body{margin:0;padding:0;background:#fff;color:#111;font:11pt/1.7 "Noto Sans TC","Microsoft JhengHei",sans-serif}' +
       'body{padding:15mm}' +
       'h2{font-size:16pt;line-height:1.4;margin:0 0 7mm;font-weight:700;break-after:avoid-page;page-break-after:avoid}' +
+      '.observations{margin:0 0 9mm;padding:0 0 5mm;border-bottom:1px solid #ccc;break-inside:avoid;page-break-inside:avoid}' +
+      '.observations h2{margin:0 0 3mm;font-size:16pt;break-after:avoid-page;page-break-after:avoid}' +
+      '.observations p{font-size:11pt;line-height:1.8;margin:0 0 2mm;white-space:pre-wrap}' +
       '.region-group{display:block}' +
       '.region-group.next-region{break-before:page!important;page-break-before:always!important}' +
       '.news-item{display:block;margin:0 0 7mm;padding:0 0 5mm;border-bottom:1px solid #ddd;break-inside:avoid;page-break-inside:avoid}' +
@@ -535,7 +548,7 @@
       '.summary{font-size:11pt;line-height:1.8;margin:0 0 3mm;overflow-wrap:anywhere}' +
       '.source-link{font-size:9pt;line-height:1.5;margin:0;overflow-wrap:anywhere;word-break:break-all}' +
       'a{color:#174a86;text-decoration:underline;overflow-wrap:anywhere;word-break:break-all}' +
-      '</style></head><body>' + groups + '</body></html>';
+      '</style></head><body>' + observationHtml + groups + '</body></html>';
 
     win.document.open();
     win.document.write(doc);
