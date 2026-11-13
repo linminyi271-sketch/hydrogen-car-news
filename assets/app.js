@@ -485,14 +485,66 @@
     toast('已匯出 ' + filename);
   }
   function exportPdf() {
-    if (inArtifact()) { toast('預覽環境無法開啟列印視窗；部署到正式網址後，這個按鈕即可另存 PDF。'); return; }
+    if (inArtifact()) { toast('預覽環境無法開啟列印視窗；請在正式網站使用 PDF 匯出。'); return; }
     var w = curWeek();
-    var old = document.title;
-    document.title = C.SITE_TITLE + (w ? '_' + w.start + '_' + w.end : '');
-    function restore() { document.title = old; window.removeEventListener('afterprint', restore); }
-    window.addEventListener('afterprint', restore);
-    toast('在列印視窗的「目的地」選擇「另存為 PDF」。');
-    setTimeout(function () { window.print(); }, 60);
+    if (!w) { toast('目前沒有可匯出的期別。'); return; }
+    var items = sortItems(visible());
+    if (!items.length) { toast('目前沒有符合條件的新聞可匯出。'); return; }
+
+    // 另開乾淨的 PDF 列印文件，不使用網站原本含選取框、標籤及頁首頁尾的畫面。
+    var win = window.open('', '_blank');
+    if (!win) { toast('瀏覽器封鎖了 PDF 視窗，請允許此網站開啟彈出視窗後再試。'); return; }
+
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+        return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+      });
+    }
+
+    var number = 0;
+    var regionCount = 0;
+    var groups = REGIONS.map(function (region) {
+      var rows = items.filter(function (n) { return n.region === region; });
+      if (!rows.length) return '';
+      var breakAttr = regionCount++ ? ' class="region-group next-region"' : ' class="region-group"';
+      return '<section' + breakAttr + '><h2>' + esc(region) + '新聞</h2>' +
+        rows.map(function (n) {
+          number += 1;
+          var url = safeUrl(n.url);
+          return '<article class="news-item">' +
+            '<h3>' + number + '. ' + esc(n.title) + '</h3>' +
+            '<p class="meta">' + esc(n.source) + '　｜　' + esc(fmtD(n.date)) + '</p>' +
+            (n.summary ? '<p class="summary">' + esc(n.summary).replace(/\n/g, '<br>') + '</p>' : '') +
+            (url ? '<p class="source-link">新聞連結：<a href="' + esc(url) + '">' + esc(url) + '</a></p>' : '') +
+          '</article>';
+        }).join('') + '</section>';
+    }).join('');
+
+    var title = C.SITE_TITLE + '_' + w.start + '_' + w.end;
+    var doc = '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8">' +
+      '<title>' + esc(title) + '</title><style>' +
+      '@page{size:A4;margin:0}*{box-sizing:border-box}' +
+      'html,body{margin:0;padding:0;background:#fff;color:#111;font:11pt/1.7 "Noto Sans TC","Microsoft JhengHei",sans-serif}' +
+      'body{padding:15mm}' +
+      'h2{font-size:16pt;line-height:1.4;margin:0 0 7mm;font-weight:700;break-after:avoid-page;page-break-after:avoid}' +
+      '.region-group{display:block}' +
+      '.region-group.next-region{break-before:page!important;page-break-before:always!important}' +
+      '.news-item{display:block;margin:0 0 7mm;padding:0 0 5mm;border-bottom:1px solid #ddd;break-inside:avoid;page-break-inside:avoid}' +
+      '.news-item h3{font-size:12pt;line-height:1.5;margin:0 0 2mm;font-weight:700}' +
+      '.meta{font-size:9.5pt;color:#555;margin:0 0 3mm}' +
+      '.summary{font-size:11pt;line-height:1.8;margin:0 0 3mm;overflow-wrap:anywhere}' +
+      '.source-link{font-size:9pt;line-height:1.5;margin:0;overflow-wrap:anywhere;word-break:break-all}' +
+      'a{color:#174a86;text-decoration:underline;overflow-wrap:anywhere;word-break:break-all}' +
+      '</style></head><body>' + groups + '</body></html>';
+
+    win.document.open();
+    win.document.write(doc);
+    win.document.close();
+    win.focus();
+    setTimeout(function () {
+      win.print();
+    }, 500);
+    toast('已開啟純淨 PDF 版面；列印時請選擇「另存為 PDF」。');
   }
   function doExport(kind) {
     var w = curWeek();
