@@ -429,14 +429,67 @@
     toast('已匯出 ' + filename);
   }
   function exportPdf() {
-    if (inArtifact()) { toast('預覽環境無法開啟列印視窗；部署到正式網址後，這個按鈕即可另存 PDF。'); return; }
+    if (inArtifact()) { toast('預覽環境無法開啟列印視窗；部署到正式網址後即可另存 PDF。'); return; }
     var w = curWeek();
-    var old = document.title;
-    document.title = C.SITE_TITLE + (w ? '_' + w.start + '_' + w.end : '');
-    function restore() { document.title = old; window.removeEventListener('afterprint', restore); }
-    window.addEventListener('afterprint', restore);
-    toast('在列印視窗的「目的地」選擇「另存為 PDF」。');
-    setTimeout(function () { window.print(); }, 60);
+    if (!w) { toast('目前沒有可匯出的期別。'); return; }
+    var items = sortItems(visible());
+    if (!items.length) { toast('目前沒有符合條件的新聞可匯出。'); return; }
+
+    function esc(v) {
+      return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+        return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+      });
+    }
+
+    var globalNewsNo = 0;
+    var printedRegionCount = 0;
+    var groups = REGIONS.map(function (region) {
+      var rows = items.filter(function (n) { return n.region === region; });
+      if (!rows.length) return '';
+      var pageBreak = printedRegionCount++ > 0 ? ' style="break-before:page;page-break-before:always"' : '';
+      return '<section class="region-group"' + pageBreak + '><h2 class="region-title">' + esc(region) + '新聞</h2>' +
+        rows.map(function (n) {
+          var url = safeUrl(n.url);
+          globalNewsNo += 1;
+          return '<article class="news-item"><h3>' + globalNewsNo + '. ' + esc(n.title) + '</h3>' +
+            '<p class="meta">' + esc(n.source) + '　｜　' + esc(fmtD(n.date)) + '</p>' +
+            (n.summary ? '<p class="summary">' + esc(n.summary).replace(/\n/g, '<br>') + '</p>' : '') +
+            (url ? '<p class="source-link">新聞連結：<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + esc(url) + '</a></p>' : '') +
+            '</article>';
+        }).join('') + '</section>';
+    }).join('');
+
+    var obs = state.obs[w.start] && state.obs[w.start].text ? state.obs[w.start].text : '';
+    var obsHtml = obs ? '<section class="observations"><h2>本週重點觀察</h2>' +
+      obs.split(/\n+/).filter(Boolean).map(function (line) { return '<p>' + esc(line) + '</p>'; }).join('') +
+      '</section>' : '';
+
+    var doc = '<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><title>' +
+      esc(C.SITE_TITLE + '_' + w.start + '_' + w.end) + '</title><style>' +
+      '@page{size:A4;margin:0}*{box-sizing:border-box}' +
+      'html,body{margin:0;padding:0;color:#111;background:#fff;font:11pt/1.7 "Noto Sans TC","Microsoft JhengHei",sans-serif}' +
+      'body{padding:16mm 15mm}' +
+      'h2{font-size:16pt;margin:0 0 5mm;font-weight:700}' +
+      '.region-title{break-after:avoid-page;page-break-after:avoid;margin:0 0 5mm}' +
+      '.region-group{break-inside:auto;page-break-inside:auto}' +
+      '.region-group[style*="break-before"]{break-before:page!important;page-break-before:always!important;margin-top:0}' +
+      '.news-item{break-inside:avoid;page-break-inside:avoid;padding:0 0 5mm;margin:0 0 5mm;border-bottom:1px solid #ddd}' +
+      '.news-item h3{font-size:12pt;line-height:1.5;margin:0 0 2mm}' +
+      '.meta{font-size:9.5pt;color:#555;margin:0 0 2mm}' +
+      '.summary{margin:0 0 2mm;white-space:normal;overflow-wrap:anywhere}' +
+      '.source-link{font-size:9pt;margin:0;overflow-wrap:anywhere;word-break:break-word}' +
+      'a{color:#174a86;text-decoration:underline;overflow-wrap:anywhere}' +
+      '.observations{margin-bottom:8mm;break-inside:avoid;page-break-inside:avoid}' +
+      '.observations p{margin:0 0 3mm}' +
+      '</style></head><body>' + obsHtml + groups + '</body></html>';
+
+    var win = window.open('', '_blank');
+    if (!win) { toast('瀏覽器封鎖了列印視窗，請允許此網站開啟彈出視窗後再試。'); return; }
+    win.document.open();
+    win.document.write(doc);
+    win.document.close();
+    win.onload = function () { win.focus(); win.print(); };
+    toast('已整理 PDF 版面；列印時請選擇「另存為 PDF」。');
   }
   function doExport(kind) {
     var w = curWeek();
