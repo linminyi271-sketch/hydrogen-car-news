@@ -23,6 +23,8 @@
   var LINK_RE = /^(?:原文)?(?:連結|網址|來源連結)\s*[:：]\s*(.*)$/;
   var URL_RE = /https?:\/\/[^\s<>"'，。、）)]+/i;
   var HEADER_RE = /^[【\[［]\s*([^】\]］]{1,20})\s*[】\]］]\s*(.{0,12})$/;
+  var PLAIN_HEADER_RE = /^(?:亞洲|國際|國內|國外)(?:新聞)?$/;
+  var PLAIN_OBS_RE = /^(?:本週|本周)?(?:重點觀察|編者的話)$/;
   var NUMBERING_RE = /^\s*(?:\(?\d{1,2}[.)、．]|\(\d{1,2}\)|[•●▪■◆\-–*])\s*/;
   var RANGE_RE = /(\d{4})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[~～\-–—至到]\s*(?:(\d{4})\s*[\/.\-]\s*)?(\d{1,2})\s*[\/.\-]\s*(\d{1,2})/;
   var FILE_RANGE_RE = /(\d{2})(\d{2})\s*[-_~～–]\s*(\d{2})(\d{2})/;
@@ -120,10 +122,11 @@
         var links = li === 0 ? (p.links || []) : [];
 
         var hm = HEADER_RE.exec(t);
-        if (hm) {
+        if (hm || PLAIN_HEADER_RE.test(t) || PLAIN_OBS_RE.test(t)) {
           sawHeader = true;
-          section = regionFromHeader(clean(hm[1]));
-          if (section === 'UNKNOWN') warnings.push('無法辨識的區塊「' + hm[1] + '」，該區新聞的區域請在預覽中選擇。');
+          var headerName = hm ? clean(hm[1]) : t;
+          section = PLAIN_OBS_RE.test(headerName) ? 'OBS' : regionFromHeader(headerName);
+          if (section === 'UNKNOWN') warnings.push('無法辨識的區塊「' + headerName + '」，該區新聞的區域請在預覽中選擇。');
           cur = null;
           return;
         }
