@@ -67,6 +67,34 @@
       .replace(/([㐀-鿿])\s+([A-Za-z0-9])/g, '$1$2');
   }
   function stripNumbering(s) { return s.replace(NUMBERING_RE, ''); }
+
+  // 寬鬆解析標題行：日期每週動態變動，不依賴固定範例日期或固定連字號。
+  function parseTitleLine(line) {
+    var text = clean(stripNumbering(line))
+      .replace(/[‐‑‒−]/g, '–')
+      .replace(/[：:：]\s*$/, '');
+    var m = TITLE_RE.exec(text);
+    if (m) return {
+      title: clean(m[1]), source: normalizeSource(m[2]),
+      date: ymd(m[3], m[4], m[5])
+    };
+
+    // 後備格式：從行尾擷取 YYYY/MM/DD，再以最後一個標題／來源分隔符切開。
+    var dm = /(\\d{4})\\s*[\\/.年-]\\s*(\\d{1,2})\\s*[\\/.月-]\\s*(\\d{1,2})\\s*日?\\s*$/.exec(text);
+    if (!dm) return null;
+    var beforeDate = clean(text.slice(0, dm.index));
+    var separators = [' - ', ' – ', ' — ', ' － ', '-', '–', '—', '－'];
+    var splitAt = -1, splitLen = 0;
+    for (var i = 0; i < separators.length; i++) {
+      var at = beforeDate.lastIndexOf(separators[i]);
+      if (at > splitAt) { splitAt = at; splitLen = separators[i].length; }
+    }
+    if (splitAt <= 0) return null;
+    var title = clean(beforeDate.slice(0, splitAt));
+    var source = normalizeSource(clean(beforeDate.slice(splitAt + splitLen)));
+    if (!title || !source) return null;
+    return { title: title, source: source, date: ymd(dm[1], dm[2], dm[3]) };
+  }
   function isValidUrl(u) {
     if (!/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(u || '')) return false;
     try { var x = new URL(u); return x.protocol === 'http:' || x.protocol === 'https:'; } catch (e) { return false; }
@@ -155,9 +183,9 @@
         if (/^https?:\/\/\S+$/i.test(t) && cur && !cur.url) { cur.url = links[0] || t; return; }
 
         var body = stripNumbering(t);
-        var tm = TITLE_RE.exec(body);
-        if (tm) {
-          startItem({ title: clean(tm[1]), source: normalizeSource(tm[2]), date: ymd(tm[3], tm[4], tm[5]) });
+        var parsedTitle = parseTitleLine(body);
+        if (parsedTitle) {
+          startItem(parsedTitle);
           return;
         }
         // 粗體短句、且前一則已有連結 → 視為格式不完整的標題
@@ -203,7 +231,7 @@
       };
     });
 
-    if (!out.length) warnings.push('沒有找到任何新聞。請確認標題行的格式為「標題 - 來源 2026/10/29」。');
+    if (!out.length) warnings.push('沒有找到符合格式的新聞標題。請確認每則新聞標題行包含「標題、來源媒體及日期（YYYY/MM/DD）」，日期可依每週實際日期變動；支援半形連字號、短橫線及全形連字號。');
     return { weekStart: range.start, weekEnd: range.end, observation: obsLines.join('\n'), items: out, warnings: warnings };
   }
 
