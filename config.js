@@ -1,7 +1,7 @@
 /* 氫能車產業新聞網站設定 */
 window.SITE_CONFIG = {
-  SITE_TITLE: '氫能車產業新聞',
-  SITE_SUBTITLE: 'Hydrogen Mobility Industry News',
+  SITE_TITLE: '零排放車產業新聞',
+  SITE_SUBTITLE: 'Zero-Emission Vehicle',
   API_URL: '',
   UPLOAD_CODE_REQUIRED: false,
   WEEK_START_DAY: 1,
