@@ -19,9 +19,9 @@
 
 var NEWS_SHEET = 'news';
 var OBS_SHEET = 'observations';
-var NEWS_HEADERS = ['id', 'week_start', 'week_end', 'region', 'title', 'source', 'date', 'summary', 'url', 'tags', 'status', 'uploader', 'uploaded_at'];
+var NEWS_HEADERS = ['id', 'week_start', 'week_end', 'vehicle_type', 'region', 'title', 'source', 'date', 'summary', 'url', 'tags', 'status', 'uploader', 'uploaded_at'];
 var OBS_HEADERS = ['week_start', 'text', 'status', 'uploader', 'uploaded_at'];
-var PUBLIC_FIELDS = ['id', 'week_start', 'week_end', 'region', 'title', 'source', 'date', 'summary', 'url', 'tags'];
+var PUBLIC_FIELDS = ['id', 'week_start', 'week_end', 'vehicle_type', 'region', 'title', 'source', 'date', 'summary', 'url', 'tags'];
 var REGIONS = ['亞洲', '國際'];
 var WEEK_START_DAY = 1; // 與網站 config.js 相同：4 = 週四
 var LIMITS = { title: 300, source: 80, summary: 3000, url: 2000, tags: 300, uploader: 80, observation: 5000, items: 100 };
@@ -116,6 +116,7 @@ function addNews_(items, uploader) {
   var records = [], skipped = 0, invalid = 0;
   items.forEach(function (raw) {
     var it = {
+      vehicle_type: clean_(raw.vehicle_type, 20),
       region: clean_(raw.region, 10),
       title: clean_(raw.title, LIMITS.title),
       source: clean_(raw.source, LIMITS.source),
@@ -127,7 +128,7 @@ function addNews_(items, uploader) {
       week_start: clean_(raw.week_start, 10),
       week_end: clean_(raw.week_end, 10)
     };
-    if (REGIONS.indexOf(it.region) === -1 || !it.title || !it.source || !isDate_(it.date) || !/^https?:\/\/\S+\.\S+/i.test(it.url)) { invalid++; return; }
+    if (['氫能車', '純電動車'].indexOf(it.vehicle_type) === -1 || REGIONS.indexOf(it.region) === -1 || !it.title || !it.source || !isDate_(it.date) || !/^https?:\/\/\S+\.\S+/i.test(it.url)) { invalid++; return; }
     if (!isDate_(it.week_start)) it.week_start = weekStart_(it.date);
     if (!isDate_(it.week_end)) it.week_end = addDays_(it.week_start, 6);
     var key = urlKey_(it.url);
@@ -215,7 +216,17 @@ function ensureSheet_(ss, name, headers) {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight('bold');
     sheet.setFrozenRows(1);
-    sheet.getRange(1, 1, sheet.getMaxRows(), headers.length).setNumberFormat('@'); // 全部存成純文字，避免日期被自動轉換
+    sheet.getRange(1, 1, sheet.getMaxRows(), headers.length).setNumberFormat('@');
+  } else {
+    // 舊資料庫自動補上新欄位，既有資料不會被覆蓋。
+    var current = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function (h) { return String(h).trim(); });
+    headers.forEach(function (header) {
+      if (current.indexOf(header) === -1) {
+        var col = sheet.getLastColumn() + 1;
+        sheet.getRange(1, col).setValue(header).setFontWeight('bold').setNumberFormat('@');
+        current.push(header);
+      }
+    });
   }
   return sheet;
 }
