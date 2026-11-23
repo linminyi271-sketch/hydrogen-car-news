@@ -10,6 +10,7 @@
   var P = window.NewsParser;
   var S = window.NewsStore;
   var REGIONS = C.REGIONS || ['國內', '國外'];
+  var VEHICLES = C.VEHICLE_TYPES || ['氫能車', '純電動車'];
   var TAG_NAMES = (C.TAGS || []).map(function (t) { return t.name; });
   var ARCHIVE_LIMIT = 12;
 
@@ -77,7 +78,7 @@
   // ---------- 狀態 ----------
   var state = {
     news: [], obs: {}, weeks: [], week: null, updatedAt: null,
-    region: 'all', tags: new Set(), source: '', q: '', scope: 'all',
+    region: 'all', vehicle: 'all', tags: new Set(), source: '', q: '', scope: 'all',
     expanded: new Set(), selected: new Set(), loaded: false, showAllWeeks: false
   };
 
@@ -113,15 +114,16 @@
   function visible() {
     var tk = tokens();
     var list = scopeItems();
+    if (state.vehicle !== 'all') list = list.filter(function (n) { return n.vehicle_type === state.vehicle; });
     if (state.region !== 'all') list = list.filter(function (n) { return n.region === state.region; });
     if (state.source) list = list.filter(function (n) { return n.source === state.source; });
     if (state.tags.size) list = list.filter(function (n) { return n.tags.some(function (t) { return state.tags.has(t); }); });
     if (tk.length) list = list.filter(function (n) { var s = hay(n); return tk.every(function (t) { return s.indexOf(t) !== -1; }); });
     return sortItems(list);
   }
-  function hasFilters() { return state.region !== 'all' || state.source || state.tags.size || state.q.trim(); }
+  function hasFilters() { return state.vehicle !== 'all' || state.region !== 'all' || state.source || state.tags.size || state.q.trim(); }
   function clearFilters() {
-    state.region = 'all'; state.source = ''; state.tags.clear(); state.q = ''; $('q').value = '';
+    state.vehicle = 'all'; state.region = 'all'; state.source = ''; state.tags.clear(); state.q = ''; $('q').value = '';
     renderFilters(); renderList(); renderRail();
   }
 
@@ -163,7 +165,7 @@
     $('next-week').disabled = idx <= 0;
     var sources = new Set(w.items.map(function (n) { return n.source; }));
     var parts = [['本期新聞', w.items.length]];
-    REGIONS.forEach(function (r) { parts.push([r, w.items.filter(function (n) { return n.region === r; }).length]); });
+    VEHICLES.forEach(function (v) { REGIONS.forEach(function (r) { parts.push([v + '｜' + r, w.items.filter(function (n) { return n.vehicle_type === v && n.region === r; }).length]); }); });
     parts.push(['來源媒體', sources.size]);
     stats.replaceChildren.apply(stats, parts.map(function (p) {
       return h('div', { class: 'stat' }, h('dt', null, p[0]), h('dd', null, p[1]));
@@ -192,8 +194,13 @@
 
   // ---------- 篩選列 ----------
   function renderFilters() {
+    var vehicleSeg = $('vehicle-seg');
+    var vehicleOpts = [['all', '全部車種']].concat(VEHICLES.map(function (v) { return [v, v]; }));
+    vehicleSeg.replaceChildren.apply(vehicleSeg, vehicleOpts.map(function (o) {
+      return h('button', { type: 'button', role: 'radio', 'aria-checked': String(state.vehicle === o[0]), onclick: function () { state.vehicle = o[0]; renderFilters(); renderList(); } }, o[1]);
+    }));
     var seg = $('region-seg');
-    var opts = [['all', '全部']].concat(REGIONS.map(function (r) { return [r, r]; }));
+    var opts = [['all', '全部區域']].concat(REGIONS.map(function (r) { return [r, r]; }));
     seg.replaceChildren.apply(seg, opts.map(function (o) {
       return h('button', {
         type: 'button', role: 'radio', 'aria-checked': String(state.region === o[0]),
@@ -263,6 +270,8 @@
     var byWeek = searchingAll();
     var weekKeys = [];
     items.forEach(function (n) { if (weekKeys.indexOf(n.week_start) === -1) weekKeys.push(n.week_start); });
+    var vehicleKeys = VEHICLES.slice();
+    items.forEach(function (n) { if (vehicleKeys.indexOf(n.vehicle_type) === -1) vehicleKeys.push(n.vehicle_type); });
     var regionKeys = REGIONS.slice();
     items.forEach(function (n) { if (regionKeys.indexOf(n.region) === -1) regionKeys.push(n.region); });
     var frag = document.createDocumentFragment();
@@ -272,14 +281,17 @@
         frag.append(h('div', { class: 'week-head' },
           h('button', { type: 'button', class: 'btn-text', onclick: function () { goWeek(wk); } }, fmtRange(wk, wobj ? wobj.end : ''))));
       }
-      regionKeys.forEach(function (r) {
-        var g = items.filter(function (n) { return n.week_start === wk && n.region === r; });
-        if (!g.length) return;
-        frag.append(h('section', { class: 'group', 'aria-label': (r || '未分類') + '新聞' },
-          h('div', { class: 'sec-head' },
-            h('h2', { class: 'sec-title' }, h('span', { class: 'marker' }, (r || '未分類') + '新聞')),
-            h('span', { class: 'sec-count' }, g.length + ' 則')),
-          h('div', { class: 'panel' }, g.map(function (n, i) { return newsEl(n, i, tk); }))));
+      vehicleKeys.forEach(function (v) {
+        regionKeys.forEach(function (r) {
+          var g = items.filter(function (n) { return n.week_start === wk && n.vehicle_type === v && n.region === r; });
+          if (!g.length) return;
+          var heading = v + '｜' + (r || '未分類') + '新聞';
+          frag.append(h('section', { class: 'group', 'aria-label': heading },
+            h('div', { class: 'sec-head' },
+              h('h2', { class: 'sec-title' }, h('span', { class: 'marker' }, heading)),
+              h('span', { class: 'sec-count' }, g.length + ' 則')),
+            h('div', { class: 'panel' }, g.map(function (n, i) { return newsEl(n, i, tk); }))));
+        });
       });
     });
     list.replaceChildren(frag);
@@ -461,9 +473,9 @@
     return '"' + s.replace(/"/g, '""') + '"';
   }
   function toCsv(list) {
-    var head = ['期別起', '期別迄', '區域', '標題', '來源', '日期', '標籤', '摘要', '原文連結'];
+    var head = ['期別起', '期別迄', '車種', '區域', '標題', '來源', '日期', '標籤', '摘要', '原文連結'];
     var rows = sortItems(list).map(function (n) {
-      return [n.week_start, n.week_end, n.region, n.title, n.source, n.date, n.tags.join('、'), n.summary, n.url].map(csvCell).join(',');
+      return [n.week_start, n.week_end, n.vehicle_type, n.region, n.title, n.source, n.date, n.tags.join('、'), n.summary, n.url].map(csvCell).join(',');
     });
     return '﻿' + [head.map(csvCell).join(',')].concat(rows).join('\r\n');
   }
@@ -502,22 +514,24 @@
     }
 
     var number = 0;
-    var regionCount = 0;
-    var groups = REGIONS.map(function (region) {
-      var rows = items.filter(function (n) { return n.region === region; });
-      if (!rows.length) return '';
-      var breakAttr = regionCount++ ? ' class="region-group next-region"' : ' class="region-group"';
-      return '<section' + breakAttr + '><h2>' + esc(region) + '新聞</h2>' +
-        rows.map(function (n) {
-          number += 1;
-          var url = safeUrl(n.url);
-          return '<article class="news-item">' +
-            '<h3>' + number + '. ' + esc(n.title) + '</h3>' +
-            '<p class="meta">' + esc(n.source) + '　｜　' + esc(fmtD(n.date)) + '</p>' +
-            (n.summary ? '<p class="summary">' + esc(n.summary).replace(/\n/g, '<br>') + '</p>' : '') +
-            (url ? '<p class="source-link">新聞連結：<a href="' + esc(url) + '">' + esc(url) + '</a></p>' : '') +
-          '</article>';
-        }).join('') + '</section>';
+    var groupCount = 0;
+    var groups = VEHICLES.map(function (vehicle) {
+      return REGIONS.map(function (region) {
+        var rows = items.filter(function (n) { return n.vehicle_type === vehicle && n.region === region; });
+        if (!rows.length) return '';
+        var breakAttr = groupCount++ ? ' class="region-group next-region"' : ' class="region-group"';
+        return '<section' + breakAttr + '><h2>' + esc(vehicle + '｜' + region + '新聞') + '</h2>' +
+          rows.map(function (n) {
+            number += 1;
+            var url = safeUrl(n.url);
+            return '<article class="news-item">' +
+              '<h3>' + number + '. ' + esc(n.title) + '</h3>' +
+              '<p class="meta">' + esc(n.source) + '　｜　' + esc(fmtD(n.date)) + '</p>' +
+              (n.summary ? '<p class="summary">' + esc(n.summary).replace(/\\n/g, '<br>') + '</p>' : '') +
+              (url ? '<p class="source-link">新聞連結：<a href="' + esc(url) + '">' + esc(url) + '</a></p>' : '') +
+            '</article>';
+          }).join('') + '</section>';
+      }).join('');
     }).join('');
 
     // 將本期手動儲存的重點觀察置於 PDF 最上方。
@@ -580,19 +594,21 @@
     '',
     '格式範例：',
     '2026/10/29–11/04',
-    '【亞洲新聞】',
+    '【氫能車｜亞洲新聞】',
     '1. 新聞標題 - 來源媒體 2026/10/29',
     '新聞摘要（繁體中文，100–250 字）',
     '原文連結：https://完整網址',
     '',
-    '【國際新聞】',
+    '【氫能車｜國際新聞】',
     '1. 新聞標題 - 來源媒體 2026/10/31',
     '新聞摘要',
     '原文連結：https://完整網址',
     '',
+    '【純電動車｜亞洲新聞】與【純電動車｜國際新聞】也請依相同格式列出；沒有新聞的區塊可省略。',
     '規則：',
     '1. 第一行是期別（週一到週日），不確定就省略這一行。',
-    '2. 亞洲＝亞洲國家及地區的企業或市場新聞；國際＝亞洲以外的國家及地區新聞。',
+    '2. 每則新聞必須放在正確車種與區域區塊；氫能車包括氫燃料電池車，純電動車指 BEV，不要把一般油電混合車或插電式油電車當成純電動車。',
+    '3. 亞洲＝亞洲國家及地區的企業或市場新聞；國際＝亞洲以外的國家及地區新聞。'
     '3. 標題、來源與日期之間用「 - 」分隔，日期一律寫成 YYYY/MM/DD。',
     '4. 摘要客觀陳述重點，不加評論，不要寫「摘要：」字樣。',
     '5. 每則都要有原文連結，必須是我提供的網址，不可自行編造；沒有網址就寫「原文連結：（缺）」。',
@@ -605,7 +621,7 @@
   function obsPrompt() {
     var w = curWeek();
     var lines = [
-      '你是氫能車產業分析師。請根據下列「' + C.SITE_TITLE + '」本期新聞（' + (w ? fmtRange(w.start, w.end) : '') + '），寫出 3–4 點「本週重點觀察」。',
+      '你是零排放車產業分析師，需分別分析氫能車與純電動車。請根據下列「' + C.SITE_TITLE + '」本期新聞（' + (w ? fmtRange(w.start, w.end) : '') + '），寫出 3–4 點「本週重點觀察」。',
       '',
       '格式要求：',
       '- 每點一行，不要編號，也不要項目符號。',
@@ -614,11 +630,13 @@
       '- 只輸出這幾行，不要其他文字。',
       ''
     ];
-    REGIONS.forEach(function (r) {
-      var g = sortItems((w ? w.items : []).filter(function (n) { return n.region === r; }));
-      if (!g.length) return;
-      lines.push('【' + r + '新聞】');
-      g.forEach(function (n, i) { lines.push((i + 1) + '. ' + P.toText(n)); lines.push(''); });
+    VEHICLES.forEach(function (v) {
+      REGIONS.forEach(function (r) {
+        var g = sortItems((w ? w.items : []).filter(function (n) { return n.vehicle_type === v && n.region === r; }));
+        if (!g.length) return;
+        lines.push('【' + v + '｜' + r + '新聞】');
+        g.forEach(function (n, i) { lines.push((i + 1) + '. ' + P.toText(n)); lines.push(''); });
+      });
     });
     return lines.join('\n');
   }
@@ -628,6 +646,7 @@
 
   function blocking(it) {
     var e = [];
+    if (VEHICLES.indexOf(it.vehicle_type) === -1) e.push('請選擇車種');
     if (REGIONS.indexOf(it.region) === -1) e.push('請選擇區域');
     if (!it.title.trim()) e.push('缺少標題');
     if (!it.source.trim()) e.push('缺少來源媒體');
@@ -645,7 +664,7 @@
 
   function openUpload(tab) {
     up.parsed = null; up.parsedFrom = null;
-    up.single = { region: REGIONS[0], tags: new Set(), touched: false };
+    up.single = { vehicle_type: VEHICLES[0], region: REGIONS[0], tags: new Set(), touched: false };
     ['s-title', 's-source', 's-url', 's-summary'].forEach(function (id) { $(id).value = ''; $(id).classList.remove('bad'); });
     $('s-date').value = P.todayStr();
     $('paste-input').value = '';
@@ -697,7 +716,7 @@
 
   function renderPreview() {
     var r = up.parsed, pv = $('preview');
-    var counts = REGIONS.map(function (g) { return g + ' ' + r.items.filter(function (i) { return i.region === g; }).length; }).join('、');
+    var counts = VEHICLES.map(function (v) { return v + ' ' + REGIONS.map(function (g) { return g + ' ' + r.items.filter(function (i) { return i.vehicle_type === v && i.region === g; }).length; }).join('／'); }).join('；');
     var startIn = h('input', { class: 'input', type: 'date', id: 'pv-start', value: r.weekStart });
     var endIn = h('input', { class: 'input', type: 'date', id: 'pv-end', value: r.weekEnd });
     function onRange() {
@@ -741,6 +760,8 @@
   function pvItem(it, idx, r, refreshers) {
     var pre = 'pv' + idx + '-';
     var cb = h('input', { type: 'checkbox', checked: it.include, 'aria-label': '刊登這則新聞', id: pre + 'on' });
+    var vehicle = h('select', { class: 'select', id: pre + 'vehicle', 'aria-label': '車種' },
+      [h('option', { value: '' }, '車種')].concat(VEHICLES.map(function (v) { return h('option', { value: v, selected: it.vehicle_type === v }, v); })));
     var region = h('select', { class: 'select', id: pre + 'region', 'aria-label': '區域' },
       [h('option', { value: '' }, '區域')].concat(REGIONS.map(function (g) { return h('option', { value: g, selected: it.region === g }, g); })));
     var title = h('input', { class: 'input', id: pre + 'title', value: it.title, 'aria-label': '標題', placeholder: '標題' });
@@ -756,7 +777,7 @@
     var box = h('div', { class: 'pv-item' },
       cb,
       h('div', { class: 'pv-body' },
-        h('div', { class: 'pv-r1' }, region, title),
+        h('div', { class: 'pv-r1' }, vehicle, region, title),
         h('div', { class: 'pv-r2' }, source, date, url),
         h('details', null, sumLabel, sum),
         tagBox, warn, softWarn));
@@ -784,6 +805,7 @@
       source.classList.toggle('bad', !it.source.trim());
       date.classList.toggle('bad', !P.isValidDate(it.date));
       url.classList.toggle('bad', !P.isValidUrl(it.url));
+      vehicle.classList.toggle('bad', VEHICLES.indexOf(it.vehicle_type) === -1);
       region.classList.toggle('bad', REGIONS.indexOf(it.region) === -1);
       sumLabel.textContent = '摘要（' + it.summary.length + ' 字）';
       updatePublish();
@@ -797,6 +819,7 @@
       });
     }
     bind(title, 'title'); bind(source, 'source'); bind(date, 'date', 'change'); bind(url, 'url');
+    bind(vehicle, 'vehicle_type', 'change');
     bind(region, 'region', 'change');
     sum.addEventListener('input', function () { it.summary = sum.value; refresh(); });
     cb.addEventListener('change', function () { it.include = cb.checked; refresh(); });
@@ -819,13 +842,17 @@
     var date = $('s-date').value;
     var w = singleWeek(date);
     return {
-      region: up.single.region, title: $('s-title').value.trim(), source: $('s-source').value.trim(),
+      vehicle_type: up.single.vehicle_type, region: up.single.region, title: $('s-title').value.trim(), source: $('s-source').value.trim(),
       date: date, url: $('s-url').value.trim(), summary: $('s-summary').value.trim(),
       tags: TAG_NAMES.filter(function (t) { return up.single.tags.has(t); }),
       week_start: w ? w.start : '', week_end: w ? w.end : ''
     };
   }
   function renderSingle() {
+    var vehicleSeg = $('single-vehicle');
+    vehicleSeg.replaceChildren.apply(vehicleSeg, VEHICLES.map(function (v) {
+      return h('button', { type: 'button', role: 'radio', 'aria-checked': String(up.single.vehicle_type === v), onclick: function () { up.single.vehicle_type = v; renderSingle(); } }, v);
+    }));
     var seg = $('single-region');
     seg.replaceChildren.apply(seg, REGIONS.map(function (r) {
       return h('button', { type: 'button', role: 'radio', 'aria-checked': String(up.single.region === r), onclick: function () { up.single.region = r; renderSingle(); } }, r);
@@ -889,7 +916,7 @@
       var r = up.parsed;
       if (!r) return;
       items = r.items.filter(function (i) { return i.include && !blocking(i).length; }).map(function (i) {
-        return { region: i.region, title: i.title, source: i.source, date: i.date, summary: i.summary, url: i.url, tags: i.tags, week_start: r.weekStart, week_end: r.weekEnd };
+        return { vehicle_type: i.vehicle_type, region: i.region, title: i.title, source: i.source, date: i.date, summary: i.summary, url: i.url, tags: i.tags, week_start: r.weekStart, week_end: r.weekEnd };
       });
       if (r.observation && r.includeObs && r.obsText.trim()) obsText = r.obsText.trim();
       target = r.weekStart;
