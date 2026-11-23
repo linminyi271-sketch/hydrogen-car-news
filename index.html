@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/style.css?v=20261123-vehicle-categories">
 <script>
   /* 先套用使用者選過的深色／淺色，避免畫面閃爍 */
   try { var t = localStorage.getItem('rnw-theme'); if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
@@ -103,6 +103,7 @@
             <input id="q" type="search" placeholder="搜尋標題、摘要、來源或標籤" autocomplete="off" enterkeyhint="search">
             <kbd aria-hidden="true">/</kbd>
           </div>
+          <div class="seg" role="radiogroup" aria-label="車種" id="vehicle-seg"></div>
           <div class="seg" role="radiogroup" aria-label="區域" id="region-seg"></div>
           <label class="sr-only" for="source-select">來源媒體</label>
           <select class="select" id="source-select"><option value="">所有來源</option></select>
@@ -129,7 +130,7 @@
       </div>
       <div class="rail-note">
         <h3>如何更新</h3>
-        <p>每週按「新增新聞」上傳 Word 週報，系統會自動拆成一則則新聞並建議標籤，確認後即刊登。</p>
+        <p>每週上傳一份 Word 週報即可，系統會辨識氫能車／純電動車及亞洲／國際四類新聞，預覽確認後再刊登。</p>
       </div>
     </aside>
   </div>
@@ -160,7 +161,7 @@
       <label class="drop" id="drop" for="file-input">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 17v-6m0 0l-2.5 2.5M12 11l2.5 2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <strong>拖曳 Word 檔到這裡，或點此選擇檔案</strong>
-        <span>支援 .docx，格式與現行週報相同（【亞洲新聞】／【國際新聞】＋ 標題、摘要、原文連結）</span>
+        <span>支援 .docx，同一份檔案可包含四個區塊：氫能車－亞洲、氫能車－國際、純電動車－亞洲、純電動車－國際；每則新聞含標題、來源、日期、摘要及原文連結</span>
       </label>
       <input type="file" id="file-input" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
       <p class="hint">第一次使用？可以先下載 <a href="README.md">氫能車週報格式說明</a>，照範本填寫最不容易出錯。</p>
@@ -168,7 +169,7 @@
     <div role="tabpanel" id="panel-paste" aria-labelledby="tab-paste" hidden>
       <div class="field">
         <label for="paste-input">貼上週報文字，或 AI 整理好的內容</label>
-        <textarea class="textarea" id="paste-input" rows="10" placeholder="【亞洲新聞】&#10;1. 新聞標題 - 來源媒體 2026/11/05&#10;新聞摘要……&#10;原文連結：https://…"></textarea>
+        <textarea class="textarea" id="paste-input" rows="10" placeholder="【氫能車｜亞洲新聞】&#10;1. 新聞標題 - 來源媒體 2026/11/05&#10;新聞摘要……&#10;原文連結：https://…"></textarea>
       </div>
       <div class="row">
         <button class="btn" id="paste-parse">解析內容</button>
@@ -179,6 +180,8 @@
     <div role="tabpanel" id="panel-single" aria-labelledby="tab-single" hidden>
       <div class="form-grid" id="single-form">
         <div class="field">
+          <span class="label">車種<span class="req">*</span></span>
+          <div class="seg" role="radiogroup" aria-label="車種" id="single-vehicle"></div>
           <span class="label">區域<span class="req">*</span></span>
           <div class="seg" role="radiogroup" aria-label="區域" id="single-region"></div>
         </div>
@@ -272,10 +275,10 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="assets/vendor/jszip.min.js"></script>
-<script src="config.js"></script>
+<script src="config.js?v=20261123-vehicle-categories"></script>
 <script src="data/seed.js"></script>
-<script src="assets/parser.js?v=20261118-dynamic-title-date"></script>
+<script src="assets/parser.js?v=20261123-vehicle-categories"></script>
 <script src="assets/store.js"></script>
-<script src="assets/app.js?v=20261113-pdf3"></script>
+<script src="assets/app.js?v=20261123-vehicle-categories"></script>
 </body>
 </html>
