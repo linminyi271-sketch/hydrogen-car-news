@@ -29,6 +29,7 @@
     return {
       id: String(raw.id || ('n' + i)),
       week_start: start, week_end: end,
+      vehicle_type: String(raw.vehicle_type || P.inferVehicle(raw.title + ' ' + raw.summary + ' ' + splitTags(raw.tags).join(' ')) || '氫能車'),
       region: String(raw.region || ''),
       title: String(raw.title || ''),
       source: String(raw.source || ''),
@@ -53,7 +54,7 @@
 
   function publicItem(it) {
     return {
-      week_start: it.week_start, week_end: it.week_end, region: it.region, title: it.title,
+      week_start: it.week_start, week_end: it.week_end, vehicle_type: it.vehicle_type, region: it.region, title: it.title,
       source: it.source, date: it.date, summary: it.summary, url: it.url, tags: it.tags
     };
   }
