@@ -24,6 +24,7 @@
   var URL_RE = /https?:\/\/[^\s<>"'，。、）)]+/i;
   var HEADER_RE = /^[【\[［]\s*([^】\]］]{1,20})\s*[】\]］]\s*(.{0,12})$/;
   var PLAIN_HEADER_RE = /^(?:亞洲|國際|國內|國外)(?:新聞)?$/;
+  var VEHICLE_HEADER_RE = /^(?:氫能車|氫燃料電池車|燃料電池車|純電動車|純電車|電動車|BEV)(?:新聞)?$/i;
   var PLAIN_OBS_RE = /^(?:本週|本周)?(?:重點觀察|編者的話)$/;
   var NUMBERING_RE = /^\s*(?:\(?\d{1,2}[.)、．]|\(\d{1,2}\)|[•●▪■◆\-–*])\s*/;
   var RANGE_RE = /(\d{4})\s*[\/.\-]\s*(\d{1,2})\s*[\/.\-]\s*(\d{1,2})\s*[~～\-–—至到]\s*(?:(\d{4})\s*[\/.\-]\s*)?(\d{1,2})\s*[\/.\-]\s*(\d{1,2})/;
@@ -122,6 +123,17 @@
     for (var i = 0; i < regions.length; i++) if (name.indexOf(regions[i]) !== -1) return regions[i];
     return 'UNKNOWN';
   }
+  function vehicleFromHeader(name) {
+    if (/氫能|氫燃料|燃料電池/.test(name)) return '氫能車';
+    if (/純電|電動車|電動汽車|\\bBEV\\b/i.test(name)) return '純電動車';
+    return '';
+  }
+  function inferVehicle(text) {
+    var s = String(text || '').toLowerCase();
+    if (/氫能|氫燃料|燃料電池|加氫|儲氫|fuel.?cell|hydrogen/.test(s)) return '氫能車';
+    if (/純電動|純電車|電動車|電動汽車|bev|battery.?electric|electric vehicle|電池電動/.test(s)) return '純電動車';
+    return '';
+  }
 
   // ---------- 主要解析 ----------
   /**
@@ -131,11 +143,12 @@
   function parseParagraphs(paras, opts) {
     opts = opts || {};
     var items = [], obsLines = [], warnings = [];
-    var section = null, cur = null, docRange = null, sawHeader = false;
+    var section = null, vehicle = '', cur = null, docRange = null, sawHeader = false;
 
     function startItem(fields) {
       cur = {
         region: section === '國內' || section === '國外' || (CFG.REGIONS || []).indexOf(section) !== -1 ? section : '',
+        vehicle_type: vehicle || inferVehicle(fields.title || ''),
         title: fields.title || '', source: fields.source || '', date: fields.date || '',
         summaryParts: [], url: ''
       };
@@ -150,11 +163,17 @@
         var links = li === 0 ? (p.links || []) : [];
 
         var hm = HEADER_RE.exec(t);
-        if (hm || PLAIN_HEADER_RE.test(t) || PLAIN_OBS_RE.test(t)) {
+        if (hm || PLAIN_HEADER_RE.test(t) || PLAIN_OBS_RE.test(t) || VEHICLE_HEADER_RE.test(t)) {
           sawHeader = true;
           var headerName = hm ? clean(hm[1]) : t;
-          section = PLAIN_OBS_RE.test(headerName) ? 'OBS' : regionFromHeader(headerName);
-          if (section === 'UNKNOWN') warnings.push('無法辨識的區塊「' + headerName + '」，該區新聞的區域請在預覽中選擇。');
+          if (PLAIN_OBS_RE.test(headerName)) section = 'OBS';
+          else {
+            var detectedVehicle = vehicleFromHeader(headerName);
+            if (detectedVehicle) vehicle = detectedVehicle;
+            var detectedRegion = regionFromHeader(headerName);
+            if (detectedRegion !== 'UNKNOWN') section = detectedRegion;
+            else if (!detectedVehicle) warnings.push('無法辨識的區塊「' + headerName + '」，請在預覽中確認車種與區域。');
+          }
           cur = null;
           return;
         }
@@ -223,8 +242,10 @@
       if (!isValidUrl(it.url)) w.push('缺少或無效的原文連結');
       if (!summary) w.push('沒有摘要');
       if (isValidDate(it.date) && (it.date < range.start || it.date > range.end)) w.push('日期不在本期區間內');
+      var vehicleType = it.vehicle_type || inferVehicle(it.title + ' ' + summary);
+      if (!vehicleType) w.push('未辨識車種，請在預覽中選擇氫能車或純電動車');
       return {
-        region: it.region, title: it.title, source: it.source, date: it.date,
+        vehicle_type: vehicleType, region: it.region, title: it.title, source: it.source, date: it.date,
         summary: summary, url: it.url,
         tags: suggestTags(it.title + ' ' + summary),
         warnings: w
@@ -324,14 +345,16 @@
       paras.push({ text: '【本週重點觀察】' });
       String(data.observation).split(/\n+/).forEach(function (l) { paras.push({ text: l }); });
     }
-    (CFG.REGIONS || ['國內', '國外']).forEach(function (r) {
-      var group = list.filter(function (n) { return n.region === r; });
-      if (!group.length) return;
-      paras.push({ text: '【' + r + '新聞】' });
-      group.forEach(function (n) {
-        paras.push({ text: n.title + ' - ' + n.source + ' ' + String(n.date || '').replace(/-/g, '/') });
-        paras.push({ text: n.summary || '' });
-        paras.push({ text: '原文連結：' + (n.url || '') });
+    (CFG.VEHICLE_TYPES || ['氫能車', '純電動車']).forEach(function (v) {
+      (CFG.REGIONS || ['亞洲', '國際']).forEach(function (r) {
+        var group = list.filter(function (n) { return (n.vehicle_type || inferVehicle(n.title + ' ' + n.summary) || '氫能車') === v && n.region === r; });
+        if (!group.length) return;
+        paras.push({ text: '【' + v + '｜' + r + '新聞】' });
+        group.forEach(function (n) {
+          paras.push({ text: n.title + ' - ' + n.source + ' ' + String(n.date || '').replace(/-/g, '/') });
+          paras.push({ text: n.summary || '' });
+          paras.push({ text: '原文連結：' + (n.url || '') });
+        });
       });
     });
     var res = parseParagraphs(paras, {});
@@ -350,7 +373,7 @@
 
   window.NewsParser = {
     parseDocx: parseDocx, parseText: parseText, parseParagraphs: parseParagraphs,
-    suggestTags: suggestTags, weekOf: weekOf, addDays: addDays, isValidDate: isValidDate,
+    suggestTags: suggestTags, inferVehicle: inferVehicle, weekOf: weekOf, addDays: addDays, isValidDate: isValidDate,
     isValidUrl: isValidUrl, urlKey: urlKey, toText: toText, todayStr: function () { return fromDate(new Date()); }
   };
 })();
