@@ -153,7 +153,7 @@
     var stats = $('stats');
     if (!w) {
       $('issue-range').textContent = state.loaded ? '尚無週報' : '載入中…';
-      $('issue-eyebrow').textContent = '機器人產業新聞週報';
+      $('issue-eyebrow').textContent = C.SITE_TITLE;
       $('prev-week').disabled = $('next-week').disabled = true;
       stats.replaceChildren();
       return;
@@ -608,11 +608,11 @@
     '規則：',
     '1. 第一行是期別（週一到週日），不確定就省略這一行。',
     '2. 每則新聞必須放在正確車種與區域區塊；氫能車包括氫燃料電池車，純電動車指 BEV，不要把一般油電混合車或插電式油電車當成純電動車。',
-    '3. 亞洲＝亞洲國家及地區的企業或市場新聞；國際＝亞洲以外的國家及地區新聞。'
-    '3. 標題、來源與日期之間用「 - 」分隔，日期一律寫成 YYYY/MM/DD。',
-    '4. 摘要客觀陳述重點，不加評論，不要寫「摘要：」字樣。',
-    '5. 每則都要有原文連結，必須是我提供的網址，不可自行編造；沒有網址就寫「原文連結：（缺）」。',
-    '6. 同一則新聞不要重複列出。',
+    '3. 亞洲＝亞洲國家及地區的企業或市場新聞；國際＝亞洲以外的國家及地區新聞。',
+    '4. 標題、來源與日期之間用「 - 」分隔，日期一律寫成 YYYY/MM/DD。',
+    '5. 摘要客觀陳述重點，不加評論，不要寫「摘要：」字樣。',
+    '6. 每則都要有原文連結，必須是我提供的網址，不可自行編造；沒有網址就寫「原文連結：（缺）」。',
+    '7. 同一則新聞不要重複列出。',
     '',
     '以下是新聞內容：',
     ''
@@ -642,7 +642,7 @@
   }
 
   // ---------- 新增新聞（對話框） ----------
-  var up = { tab: 'word', parsed: null, parsedFrom: null, single: { region: REGIONS[0], tags: new Set(), touched: false } };
+  var up = { tab: 'word', parsed: null, parsedFrom: null, single: { vehicle_type: VEHICLES[0], region: REGIONS[0], tags: new Set(), touched: false } };
 
   function blocking(it) {
     var e = [];
