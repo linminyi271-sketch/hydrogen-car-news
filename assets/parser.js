@@ -125,13 +125,13 @@
   }
   function vehicleFromHeader(name) {
     if (/氫能|氫燃料|燃料電池/.test(name)) return '氫能車';
-    if (/純電|電動車|電動汽車|\\bBEV\\b/i.test(name)) return '純電動車';
+    if (/純電|電動車|電動汽車|\bBEV\b/i.test(name)) return '純電動車';
     return '';
   }
   function inferVehicle(text) {
     var s = String(text || '').toLowerCase();
     if (/氫能|氫燃料|燃料電池|加氫|儲氫|fuel.?cell|hydrogen/.test(s)) return '氫能車';
-    if (/純電動|純電車|電動車|電動汽車|bev|battery.?electric|electric vehicle|電池電動/.test(s)) return '純電動車';
+    if (/純電動|純電車|電動車|電動汽車|\\bbev\\b|\\bev\\b|battery.?electric|electric vehicle|電池電動/.test(s)) return '純電動車';
     return '';
   }
 
