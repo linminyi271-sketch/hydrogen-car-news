@@ -462,7 +462,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
 .form-grid .full { grid-column: 1 / -1; }
-@media (max-width: 600px) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { .form-grid { grid-template-columns: minmax(0, 1fr); } .pv-r1 { grid-template-columns: 1fr 1fr; } .pv-r1 .input { grid-column: 1 / -1; } }
 .note-line { font-size: 13px; color: var(--muted); }
 .note-line .num { color: var(--ink-2); }
 
@@ -481,7 +481,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .pv-item.bad { border-color: var(--danger); }
 .pv-item input[type="checkbox"] { width: 17px; height: 17px; margin-top: 10px; accent-color: var(--navy); }
 .pv-body { display: grid; gap: 8px; min-width: 0; }
-.pv-r1 { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
+.pv-r1 { display: grid; grid-template-columns: 112px 92px minmax(0, 1fr); gap: 8px; }
 .pv-r2 { display: grid; grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1.6fr); gap: 8px; }
 .pv-body .input { height: 34px; font-size: 14px; }
 .pv-body .select { height: 34px; width: 100%; }
