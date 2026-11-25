@@ -513,7 +513,6 @@
       });
     }
 
-    var number = 0;
     var groupCount = 0;
     var groups = VEHICLES.map(function (vehicle) {
       return REGIONS.map(function (region) {
@@ -521,11 +520,10 @@
         if (!rows.length) return '';
         var breakAttr = groupCount++ ? ' class="region-group next-region"' : ' class="region-group"';
         return '<section' + breakAttr + '><h2>' + esc(vehicle + '｜' + region + '新聞') + '</h2>' +
-          rows.map(function (n) {
-            number += 1;
+          rows.map(function (n, index) {
             var url = safeUrl(n.url);
             return '<article class="news-item">' +
-              '<h3>' + number + '. ' + esc(n.title) + '</h3>' +
+              '<h3>' + (index + 1) + '. ' + esc(n.title) + '</h3>' +
               '<p class="meta">' + esc(n.source) + '　｜　' + esc(fmtD(n.date)) + '</p>' +
               (n.summary ? '<p class="summary">' + esc(n.summary).replace(/\\n/g, '<br>') + '</p>' : '') +
               (url ? '<p class="source-link">新聞連結：<a href="' + esc(url) + '">' + esc(url) + '</a></p>' : '') +
